@@ -64,15 +64,56 @@ void f(string str) {
     LOGI("str: %s、\t", msg);
 }
 
+string jstrTostr(JNIEnv *env, jstring jstr) {
+    char *rtn = NULL;
+    jclass clsstring = env->FindClass("java/lang/String");
+    jstring strencode = env->NewStringUTF("GB2312");
+    jmethodID mid = env->GetMethodID(clsstring, "getBytes", "(Ljava/lang/String;)[B");
+    jbyteArray barr = (jbyteArray) env->CallObjectMethod(jstr, mid, strencode);
+    jsize alen = env->GetArrayLength(barr);
+    jbyte *ba = env->GetByteArrayElements(barr, JNI_FALSE);
+    if (alen > 0) {
+        rtn = (char *) malloc(alen + 1);         //new   char[alen+1];
+        memcpy(rtn, ba, alen);
+        rtn[alen] = 0;
+    }
+    env->ReleaseByteArrayElements(barr, ba, 0);
+    string stemp(rtn);
+    free(rtn);
+    return stemp;
+}
+
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_app_myapplication_MainActivity_listToJNI(JNIEnv *env, jobject thiz, jobject str_list) {
-    vector<string> vs;
-    for (int i = 0; i < 5; ++i) {
-        string s = "oppo";
-        vs.push_back(s + to_string(i));
+//    vector<string> vs;
+//    for (int i = 0; i < 5; ++i) {
+//        string s = "oppo";
+//        vs.push_back(s + to_string(i));
+//    }
+//    for_each(vs.begin(), vs.end(), f);
+
+    jclass javaListCla = env->FindClass("java/util/List");
+    jmethodID jidGet = env->GetMethodID(javaListCla, "get", "(I)Ljava/lang/Object;");
+    jmethodID jidSize = env->GetMethodID(javaListCla, "size", "()I");
+    jsize size = env->CallIntMethod(str_list, jidSize);
+
+    jclass stringCla = env->FindClass("java/lang/String");
+
+//    jclass actCla = env->GetObjectClass(thiz);
+    jclass actCla = env->FindClass("com/app/myapplication/MainActivity");
+    jmethodID acJid = env->GetMethodID(actCla, "appendTextView", "(Ljava/lang/String;)V");
+    for (int i = 0; i < size; ++i) {
+        jobject item = env->CallObjectMethod(str_list, jidGet, i);
+        if (env->IsInstanceOf(item, stringCla) == JNI_TRUE) {
+            auto js = (jstring) item;
+            string str = jstrTostr(env, js);
+            const char *strData = str.data();
+            LOGI("调用成功:%s\t", strData);
+            env->CallVoidMethod(thiz, acJid, js);
+        }
+        env->DeleteLocalRef(item);
     }
-    for_each(vs.begin(), vs.end(), f);
 }
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
@@ -90,10 +131,12 @@ public:
         this->name = name;
         this->mId = id;
     }
-    string getName(){
+
+    string getName() {
         return this->name;
     }
-    int getId(){
+
+    int getId() {
         return this->mId;
     }
 } Msg;
@@ -118,7 +161,8 @@ Java_com_app_myapplication_MainActivity_testPthread2(JNIEnv *env, jobject thiz) 
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_app_myapplication_MainActivity_updatePerson(JNIEnv *env, jobject thiz, jobject p, jstring newName) {
+Java_com_app_myapplication_MainActivity_updatePerson(JNIEnv *env, jobject thiz, jobject p,
+                                                     jstring newName) {
     jclass jcla = env->FindClass("com/app/myapplication/Person");
     jboolean isPerson = env->IsInstanceOf(p, jcla);
     if (isPerson) {

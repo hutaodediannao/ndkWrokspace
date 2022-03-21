@@ -49,6 +49,10 @@ public class MainActivity extends AppCompatActivity {
 
     private native int testIncludeLibrary(int a, int b);
 
+    public void appendTextView(String str){
+        binding.tvTerminal.append(str + "\n");
+    }
+
     public void test(View view) {
         binding.tvTerminal.setText("");
         switch (view.getId()) {
@@ -92,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
                 DynamicJNI dy = new DynamicJNI();
                 String testStr = dy.getNativeString();
                 int s = dy.sum(3, 5);
-                Log.i(TAG, "函数的动态注册 testStr======> " + testStr + ", sum=" + s);
+                Log.i(TAG, "函数的动态注册 testStr======> " + testStr + ", sum=" + s + ", getSum(1,2)="+ dy.getSum(1,2));
                 binding.tvTerminal.append(testStr + "\n");
                 binding.tvTerminal.append("DynamicJNI.sum(3,5)=" + s + "\n");
                 binding.tvTerminal.append("更新成功\n");
